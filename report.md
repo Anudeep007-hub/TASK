@@ -1,53 +1,44 @@
-# Real-time WebRTC Multi-Object Detection Demo
 
-[cite_start]This project demonstrates real-time object detection on a video stream from a phone, processed and displayed in a browser with bounding box overlays. [cite: 1]
+# Project Report: Real-time WebRTC Object Detection
 
-## One-Command Start
+This report details the design choices, low-resource mode implementation, and backpressure policy for the WebRTC object detection project.
 
-**Prerequisites**: Docker and Docker Compose must be installed.
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repo-url>
-    cd webrtc-object-detection
-    ```
-    
-2.  **Download the AI Model:**
-    ```bash
-    bash models/get_model.sh
-    ```
 
-3.  **Run the application:**
-    The `start.sh` script launches the application using Docker Compose. [cite: 4, 13]
-    ```bash
-    ./start.sh --mode=wasm 
-    ```
-    This defaults to the low-resource WASM mode. [cite: 50]
+---
+## ## 1. Design Choices
 
-## How to Use
+The architecture was designed to be robust, reproducible, and meet the specific challenges of real-time video streaming and processing.
 
-1.  [cite_start]**Open the Laptop Browser**: After running `start.sh`, open **`http://localhost:3000`** on your laptop. [cite: 86]
-2.  [cite_start]**Connect Your Phone**: Scan the QR code displayed on the laptop screen with your phone's camera. [cite: 86] This will open the sender page in your phone's browser.
-3.  [cite_start]**Allow Camera Access**: Grant camera permissions on your phone when prompted. [cite: 87]
-4.  [cite_start]**See the Magic**: You should now see the video from your phone mirrored on your laptop, with object detection overlays appearing in near real-time. [cite: 87]
+* **Unified Frontend Server (`Node.js`/`Express.js`):** The frontend and WebSocket signaling server were combined into a single Node.js application using the Express.js framework. This was a critical decision made to resolve browser "Mixed Content" security errors. By serving both the static files (`HTTP`) and the signaling channel (`WebSocket`) from a single port, we ensure that a secure `https` page can open a secure `wss://` WebSocket connection seamlessly, which is a requirement for tools like `ngrok`.
 
-## Mode Switching
+* **Containerization (`Docker` & `Docker Compose`):** The entire application is containerized to guarantee a reproducible environment. This encapsulates all dependencies for both the Node.js frontend and the Python backend, allowing anyone to run the complete system with a single command (`docker-compose up`). This fulfills the "one-command start" requirement.
 
-You can run the application in two different modes:
+* **AI Model Runtime (`ONNX Runtime`):** ONNX Runtime was selected for its high performance and cross-platform capabilities. It allows the *exact same* `yolov8n.onnx` model file to be used in the Python backend (for server mode) and in the browser via WebAssembly (for low-resource mode), ensuring consistency and simplifying model management.
 
-* **WASM Mode (Low-resource)**: Inference runs directly in your browser using WebAssembly. [cite_start]This is ideal for devices without a powerful GPU. [cite: 10, 11]
-    ```bash
-    ./start.sh --mode=wasm
-    ```
+* **NAT Traversal (`STUN`/`TURN`):** To ensure the highest possible WebRTC connection success rate, the configuration includes both STUN and TURN servers. While **STUN** servers help devices discover their public IP addresses for direct connections, **TURN** servers act as a crucial fallback, relaying video data when restrictive networks (like mobile carriers) prevent a direct peer-to-peer link.
 
-* **Server Mode**: Inference is offloaded to a Python backend server. This can handle more complex models but introduces network latency.
-    ```bash
-    ./start.sh --mode=server
-    ```
-    Then open **`http://localhost:8081`**. The URL in the browser controls the mode the client requests.
+---
+## ## 2. Low-Resource Mode Implementation
 
-## Benchmarking
+A key requirement was a mode that could run on modest laptops without a dedicated GPU. This was achieved through a client-side WebAssembly (WASM) implementation.
 
-[cite_start]A script is provided to formalize metric collection. [cite: 44]
-```bash
-./bench/run_bench.sh
+* **On-Device Inference:** The low-resource mode performs all object detection tasks directly in the browser using `onnxruntime-web`. This eliminates the need for a powerful backend server and removes the network latency of sending video frames for processing.
+
+* **Optimized Model:** The `YOLOv8n` model variant was chosen as it is the smallest and fastest version of the YOLOv8 family, designed specifically for edge devices and CPU-bound applications.
+
+* **Input Downscaling:** Before inference, video frames are downscaled to a fixed resolution of 320x240. This significantly reduces the number of calculations required per frame, directly increasing the processed FPS and lowering CPU usage.
+
+---
+## ## 3. Backpressure Policy
+
+In a real-time system, video frames often arrive faster than they can be processed. A backpressure policy is essential to prevent a growing queue, which would increase latency and memory usage.
+
+* **Strategy: Drop Intermediate Frames:** The implemented policy is to always process the most recent frame available and drop any frames that arrive while processing is in progress.
+
+* **Implementation:** This is managed with a simple boolean flag, `isProcessing`.
+    1.  Before inference begins on a frame, the flag is set to `true`.
+    2.  If a new frame arrives from the video stream while the flag is `true`, the `processFrame` function returns immediately, effectively dropping the frame.
+    3.  Once inference is complete, the flag is set back to `false`, allowing the next available frame to be processed.
+
+This approach ensures that the application remains responsive and that the displayed overlays correspond to the most recent possible video frame, minimizing perceived latency.
