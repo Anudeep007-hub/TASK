@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebRTC YOLOv8 Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #eeeaea;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #video-container {
+      position: relative;
+      display: none; /* shown only on laptop */
+    }
+    video {
+      width: 640px;
+      height: 480px;
+      background: black;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #qr-container {
+      margin-top: 2rem;
+    }
+    #phone-view {
+      display: none; /* only shown on phone */
+    }
+    #stats {
+      display: none;
+      margin-top: 1rem;
+    }
+    #stats span {
+      margin-right: 1rem;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+</head>
+<body>
+  <h1>WebRTC YOLOv8 Object Detection</h1>
+
+  <!-- LAPTOP VIEW -->
+  <div id="video-container">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <canvas id="overlayCanvas"></canvas>
+  </div>
+
+  <div id="stats">
+    <span>Mode: <strong id="mode">-</strong></span>
+    <span>Latency: <strong id="latency">0</strong> ms</span>
+    <span>FPS: <strong id="fps">0</strong></span>
+  </div>
+
+  <!-- QR for phone -->
+  <div id="qr-container">
+    <p>Scan this QR code on your phone to connect:</p>
+    <div id="qrcode"></div>
+  </div>
+
+  <!-- PHONE VIEW -->
+  <div id="phone-view">
+    <video id="localVideo" autoplay playsinline muted></video>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Docker
+.dockerignore
+
+=
+exporting
+naming
+node_modules
+webrtc-frontend@1.0.0
+writing
+
+# Models (if large)
+# models/*.onnx

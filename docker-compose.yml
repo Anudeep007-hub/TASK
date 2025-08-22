@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:8080" # Map host port 3000 to the container's single server on 8080
+    volumes:
+      - ./frontend/public:/usr/src/app/public
+      - ./models:/usr/src/app/public/models 
+    environment:
+      - NODE_ENV=development
+
+  server:
+    build:   
+      context: ./server
+    ports:
+      - "8081:8080" # Map to a different host port to avoid conflict
+    volumes:
+      - ./models:/usr/src/app/models:ro # Mount models read-only
+      - ./frontend/public:/usr/src/app/frontend/public

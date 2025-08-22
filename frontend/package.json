@@ -1,0 +1,14 @@
+{
+  "name": "webrtc-frontend",
+  "version": "1.0.0",
+  "description": "Frontend and signaling for WebRTC object detection",
+  "main": "signal.js",
+  "scripts": {
+    "start": "node signal.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0",
+    "ws": "^8.11.0"
+  }
+}
